@@ -1,6 +1,8 @@
 import sys
 import os
 import zlib
+import hashlib
+
 
 GIT_ROOT = ".git/"
 GIT_OBJECTS = ".git/objects/"
@@ -24,6 +26,22 @@ def catCommand(hash):
         data = data.split(b"\x00",maxsplit=1)[1]
         print(data.decode(), end="")
 
+def hashCommand(filepath):
+    with open(filepath,"rb") as f:
+        content = f.read()
+        content = f"blob {len(content)}".encode() + b"\0" + content
+
+        sha = hashlib.sha1(content).hexdigest()
+        sha_prefix = sha[:2]
+        sha_suffix = sha[2:]
+        
+        compressed_content = zlib.compress(content)
+
+        os.mkdir(f"{GIT_OBJECTS}/{sha_prefix}")
+        with open(f"{GIT_OBJECTS}/{sha_prefix}/{sha_suffix}","wb") as f:
+            f.write(compressed_content)
+        print(sha,end = "")
+
 
 def main():
     command = sys.argv[1]
@@ -32,6 +50,8 @@ def main():
         print("Initialized git directory")
     elif command == "cat-file" and len(sys.argv) == 4:
         catCommand(sys.argv[3])
+    elif command == "hash-object" and len(sys.argv) == 4:
+        hashCommand(sys.argv[3])
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
