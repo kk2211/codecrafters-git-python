@@ -42,9 +42,25 @@ def hashCommand(filepath):
             f.write(compressed_content)
         print(sha,end = "")
 
+def lsTreeCommand(hash):
+
+    file_path = f"{GIT_OBJECTS}/{hash[:2]}/{hash[2:]}"
+    with open(file_path, "rb") as f:
+        data = f.read()
+        data = zlib.decompress(data)
+        data = data.split(b"\x00")
+        files = []
+        for i in range(1,len(data)-1):
+            filename = data[i].split(b" ")[-1]
+            files.append(filename)
+        for file in files:
+            print(file.decode())
+
+
 
 def main():
     command = sys.argv[1]
+    # print(sys.argv)
     if command == "init":
         initialize()
         print("Initialized git directory")
@@ -52,6 +68,8 @@ def main():
         catCommand(sys.argv[3])
     elif command == "hash-object" and len(sys.argv) == 4:
         hashCommand(sys.argv[3])
+    elif command == "ls-tree" and len(sys.argv)==4:
+        lsTreeCommand(sys.argv[3])
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
