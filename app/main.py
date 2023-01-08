@@ -56,6 +56,33 @@ def lsTreeCommand(hash):
         for file in files:
             print(file.decode())
 
+def writeTree():
+    blob_code = b"10064"
+    dir_code = b"40000"
+    content = []
+    files = os.listdir()
+    files.sort()
+
+    for obj in files:
+        if str(obj) == ".git":
+            continue
+        h = hashlib.sha1()
+        code = dir_code if os.path.isdir(obj) else blob_code
+        h.update(str(obj).encode())
+        hash = h.digest()
+        content.append(code + b" " + str(obj).encode() + b"\0" + hash)
+
+    content = b"".join(content)
+    content = b"tree " + str(len(content)).encode() + b"\0" + content
+    h = hashlib.sha1()
+    h.update(content)
+    content_hash = h.hexdigest()
+
+    os.makedirs(f"{GIT_OBJECTS}/{content_hash[:2]}", exist_ok=True)
+    with open(f"{GIT_OBJECTS}/{content_hash[:2]}/{content_hash[2:]}","wb") as out:
+        out.write(zlib.compress(content))
+    print(content_hash)
+
 
 
 def main():
@@ -70,7 +97,8 @@ def main():
         hashCommand(sys.argv[3])
     elif command == "ls-tree" and len(sys.argv)==4:
         lsTreeCommand(sys.argv[3])
-
+    elif command == "write-tree":
+        writeTree()
     else:
         raise RuntimeError(f"Unknown command #{command}")
 
