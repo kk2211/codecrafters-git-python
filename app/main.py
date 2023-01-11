@@ -2,12 +2,14 @@ import sys
 import os
 import zlib
 import hashlib
-
+import time
 
 GIT_ROOT = ".git/"
 GIT_OBJECTS = ".git/objects/"
 GIT_REFS = ".git/refs/"
 GIT_HEAD = ".git/HEAD"
+GIT_AUTHOR_NAME = "Kab"
+GIT_AUTHOR_EMAIL = "kab@mail.com"
 
 def initialize():
     os.mkdir(GIT_ROOT)
@@ -84,6 +86,27 @@ def writeTree():
     print(content_hash)
 
 
+def commitTree(tree_sha,parent_commit_sha,message):
+    tree_info = f"tree {tree_sha}\n"
+    parent_info = f"parent {parent_commit_sha}\n"
+    time_in_sec = int(time.time())
+    time_zone = "+0530"
+    author_info = f"author {GIT_AUTHOR_NAME} <{GIT_AUTHOR_EMAIL}>{time_in_sec} {time_zone}\n"
+    comitter_info = f"comiiter {GIT_AUTHOR_NAME} <{GIT_AUTHOR_EMAIL}>{time_in_sec} {time_zone}\n\n"
+
+    content = tree_info+parent_info+author_info+comitter_info+message+"\n"
+
+    content = f"commit {len(content.encode())}" + "\x00" + content
+    content = content.encode()
+
+    commit_hash = hashlib.sha1(content).hexdigest()
+
+    os.makedirs(f"{GIT_OBJECTS}/{commit_hash[:2]}", exist_ok=True)
+    with open(f"{GIT_OBJECTS}/{commit_hash[:2]}/{commit_hash[2:]}","wb") as out:
+        out.write(zlib.compress(content))
+    print(commit_hash)
+
+
 
 def main():
     command = sys.argv[1]
@@ -99,6 +122,8 @@ def main():
         lsTreeCommand(sys.argv[3])
     elif command == "write-tree":
         writeTree()
+    elif command == "commit-tree":
+        commitTree(tree_sha=sys.argv[2],parent_commit_sha=sys.argv[4],message=sys.argv[6])
     else:
         raise RuntimeError(f"Unknown command #{command}")
 
